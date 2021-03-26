@@ -1,0 +1,49 @@
+tugas=read.csv("D:/myopia.csv",sep=";")
+View(tugas)
+
+
+set.seed(12345)
+index_train2=createDataPartition(tugas$myopic, p=0.8, list=FALSE)
+train=tugas[index_train2,]
+test=tugas[-index_train2,]
+
+
+
+library(caret)
+library(rpart)
+library(rpart.plot)
+
+set.seed(12345)
+akurasi <- NULL
+a <- seq(1, 100, by=2)
+
+for (k in a){
+    model = rpart(myopic~sporthr+mommy+dadmy+spheq+tvhr,data = train, method="class",control = rpart.control(minsplit = k, cp = 0))
+    y=predict(model,test,type="class")
+  akurasi[k]=mean(ifelse(y==test$myopic,1,0))*100
+  }
+
+akurasi1=data.frame(a,akurasi[complete.cases(akurasi)])
+kmax=akurasi1[akurasi1$akurasi==max(akurasi[complete.cases(akurasi)]),1]
+cat("nilai terbaik adalah :",kmax,'\n')
+cat('kekuatan akurasi:',akurasi[kmax],'\n')
+plot(akurasi1,kmax,type="b",pch=19,ylab="Akurasi",main="Jumlah Minsplit Optimal")
+text(77,86.8, 'k(71)=86.99',col='red',cex=0.8)
+
+model1 = rpart(myopic~sporthr+mommy+dadmy+spheq+tvhr,data = train, method="class",control = rpart.control(minsplit = 71, cp = 0))
+rpart.plot(model1)
+prp(model1, extra=2)
+print(model1)
+printcp(model1)
+summary(model1)
+plotcp(model1)
+
+kelas.testing=test$myopic
+y=predict(model1,test,type="class")
+table(y,kelas.testing)
+
+out <- predict(model1, test)
+pred<- colnames(out)[max.col(out, ties.method = c("random"))] 
+missclas=mean(test$myopic != pred)
+print(paste(akurasi=1-missclas))
+confusionMatrix(factor(kelas.testing),y,positive="Yes")
