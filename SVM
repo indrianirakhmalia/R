@@ -8,7 +8,7 @@ library(e1071)        # SVM methodology
 library(ISLR)         # contains example data set "Khan"
 library(RColorBrewer)
 
-dataku=read.delim("clipboard")
+dataku=read.delim("D:\Riza\Dataku")
 nrow(dataku)
 sampelsize=round(0.8*nrow(dataku))
 View(sampelsize)
