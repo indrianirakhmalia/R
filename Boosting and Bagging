@@ -31,3 +31,4 @@ model.boost2 <-train(myopic~sporthr+mommy+dadmy+spheq+tvhr,
                      data=data,method='gbm')
 prediksi2 <- predict(model.boost2,data)
 confusionMatrix(prediksi2,data$myopic)
+
