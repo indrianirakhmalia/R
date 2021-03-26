@@ -1,0 +1,65 @@
+#KNN 
+#Import data 
+library(caret)
+library(class)
+data<- read.csv("D:/knn.csv",sep = ";" ,header=TRUE)
+
+#Mengkategorikan data 1=Baik dan 2=Kurang Baik
+data$class<-as.factor(ifelse(data$class==1,1,2))
+
+# Data diacak
+data1<-data[,c("x1","x2","class")]
+head(data1)
+set.seed(100)
+data1<-data1[sample(nrow(data1)),]
+head(data1,5)
+
+# Membagi Data Menjadi 5 Folds
+K<-5
+satu<-data1[data1$class==1,]
+satu$folds<-cut(seq(1,nrow(satu)),breaks = K,labels = F)
+dua<-data1[data1$class==2,]
+dua$folds<-cut(seq(1,nrow(dua)),breaks = K,labels = F)
+data1<-as.data.frame(rbind(satu,dua))
+View(data1)
+
+
+hasil<-NULL
+hasil_akhir<-NULL
+akurasi<-NULL
+
+# k fold cross validation
+n<-seq(1,100,by=2)
+for (k in n){
+  b<-NULL
+  for(i in 1:K){
+    # Membagi data menjadi train dan test
+    train.data<-data1[data1$folds!=i,]
+    test.data<-data1[data1$folds==i,]
+    avg<-apply(train.data[,c(1,2)],2,mean)
+    sd<-apply(train.data[,c(1,2)],2,sd)
+    train.data.s<-(train.data[,c(1,2)]-matrix(avg,nrow(train.data),2,byrow = T))/matrix(sd,nrow(train.data),2,byrow = T)
+    test.data.s<-(test.data[,c(1,2)]-matrix(avg,nrow(test.data),2,byrow = T))/matrix(sd,nrow(test.data),2,byrow = T)
+    pred<-knn(train.data.s,test.data.s,train.data[,3],k)
+    a<-data.frame(pred,test.data$class)
+    b<-data.frame(rbind(b,a))
+  }
+
+  akurasi<-confusionMatrix(b[,1], b[,2])$overall[1]
+  hasil<-data.frame(k,akurasi)
+  hasil_akhir<-data.frame(rbind(hasil_akhir,hasil))
+}
+View(hasil_akhir)
+
+
+k_opt<-hasil_akhir[hasil_akhir$akurasi==max(hasil_akhir$akurasi),]
+k_opt
+paste("Nilai k optimal ");k_opt
+plot(hasil_akhir[,1],hasil_akhir[,2],type = "b",col=1:25,
+     xlab="banyaknya tetangga (k)",ylab="Accuracy",
+     main = "K Optimal Dengan Validasi Silang Pada KNN")
+points(k_opt[,1],k_opt[,2],pch=15,col="blue")
+text(k_opt[,1],k_opt[,2],k_opt[,1],pos = 2)
+
+
+hasil_akhir
