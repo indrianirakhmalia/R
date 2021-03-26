@@ -1,0 +1,30 @@
+library("cluster")
+jateng<-read.csv("D:/jawatengah.csv",
+                 quote="/", sep=",", dec=".")
+datajateng<-cbind(jateng$X1, jateng$X3, jateng$X15, jateng$X22)
+
+wssplot<-function(datajateng, nc=15, seed=1234){
+  wss<-(nrow(datajateng)-1)*sum(apply(datajateng, 2, var))
+  for (i in 2:nc){
+    wss[i]<-kmeans(datajateng, centers=i)$tot.withins}
+  plot(1:nc, wss, type="b", xlab="Number of Cluster",
+       ylab="Within Groups Sum Square of Error")
+}
+wssplot(data=datajateng)
+
+silplot<-function(datajateng, nc=15, seed=1234){
+  jarak<-as.matrix(dist(datajateng))
+  sil<-0
+  for (i in 2:nc){
+    set.seed(seed)
+    hasilgerombol<-kmeans(datajateng, i, iter.max=10)
+    sil[i]<-mean(silhouette(hasilgerombol$cluster, dmatrix=jarak) [,3])}
+  plot(2:nc, sil[2:nc], type="b", xlab="Number of Cluster", ylab="Siluet")
+}
+silplot(datajateng)
+
+#Mencari Anggota Masing-masing cluster
+kelas<-kmeans(datajateng, 5)
+frame<-data.frame(jateng$NAMA_KAB, kelas$cluster)
+#Nilai untuk tiap cluster
+kelas$centers
