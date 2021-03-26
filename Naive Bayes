@@ -1,0 +1,47 @@
+#-------------Naive -------------------------#
+data=read.delim("D:\Riza\Dataku.csv",sep=" ",header=TRUE) #all
+#menentukan sampel
+samplesize=round(0.8*nrow(data)) #round biar sampel yang diambil bilangan bulat
+
+#training sampel dengan n observasi
+set.seed(12345) #biar ambil sampelnya tetap, jadi kalo ambil data ke 12345, ya data ke 12345 terus
+ #ada 284 hasilnya
+# index = sample( seq_len ( nrow ( data ) ), size = samplesize )
+
+# Create training and test set
+index = sample( seq_len ( nrow ( data ) ), size = samplesize )
+train = data[ index, ]
+View(train)
+A=nrow(train)
+A
+test=data [-index,]
+
+library(naivebayes)
+naive=naive_bayes(status~.,data = training,usekernel = T)
+naive
+plot(naive)
+
+nb=prop.table(train$Rata.rata.Kecepatan.Angin..knot.,train$data)
+nb
+tab1=table(predict(naive,data = training))
+tab1
+
+xx <- training
+pred22 <- predict(naive,xx)
+cm22 <- table(pred22,xx$status)
+accuracy22 <- sum(cm22[1,1]+cm22[2,2]+cm22[3,3])/sum(cm22)
+accuracy22
+list(Matrix_Uji=cm22,Akurasi=accuracy22,Total_data=sum(cm22))
+
+#---------------------Testing Data--------------------#
+library(naivebayes)
+naive.test=naive_bayes(status~.,data = test,usekernel = TRUE)
+naive.test
+
+
+xtest <- testing
+predtest <- predict(naive,xtest)
+cmtest <- table(predtest,xtest$status)
+accuracytest <- sum(cmtest[1,1]+cmtest[2,2]+cmtest[3,3])/sum(cmtest)
+accuracytest
+list(Matrix_Uji=cmtest,Akurasi=accuracytest,Total_data=sum(cmtest))
