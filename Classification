@@ -1,0 +1,33 @@
+#Libraries
+library(ada)
+library(caret)
+library(randomForest)
+
+data <- read.csv("D:/RIZA /myopia.csv",sep = ';',header = T)
+head(data)
+set.seed(100)
+test_idx <- createDataPartition(data$myopic, p=0.3, list=FALSE)
+cnth_tst <- data[test_idx,] #membuat data testing
+cnth_trn <- data[-test_idx,] #membuat data training
+nrow(cnth_trn) #banyaknya observasi data training
+nrow(cnth_tst)
+
+#Boosting
+model.boost <- ada(myopic~sporthr+mommy+dadmy+spheq+tvhr,
+                   data=cnth_trn,type="discrete")
+prediksii=predict(model.boost,data)
+confusionMatrix(prediksii,data$myopic)
+
+prediksi <- sign(predict(model.boost,cnth_tst, type="F"))
+prediksi <- ifelse(prediksi==-1, 0, 1)
+confusionMatrix(prediksi, cnth_tst$myopic, positive = "1")
+
+#Random Forest
+model.forest <- randomForest(as.factor(myopic)~., data=cnth_trn)
+pred.forest <- predict(model.forest, cnth_tst)
+confusionMatrix(pred.forest, cnth_tst$myopic, positive = "1")
+
+model.boost2 <-train(myopic~sporthr+mommy+dadmy+spheq+tvhr,
+                     data=data,method='gbm')
+prediksi2 <- predict(model.boost2,data)
+confusionMatrix(prediksi2,data$myopic)
