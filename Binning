@@ -1,0 +1,141 @@
+#Diskretisasi atau Binning
+#merupakan perubahan data skala nominal ke skala ordinal
+
+library(dplyr)
+library(classInt)
+library(caret)
+library(woe)
+library(ggplot2)
+library(plotly)
+
+## import data
+data=read.csv("D:/myopia.csv", header=T, sep=";")
+tail(data)
+table(data$myopic)
+data$class<-ifelse(data$myopic=="Yes",1,0)
+data$mommy1=ifelse(data$mommy=="Yes",1,0)
+data$dadmy1=ifelse(data$dadmy=="Yes",1,0)
+
+set.seed(23)
+acak<-(data[sample(nrow(data)),])
+yes<-acak[acak$myopic=="Yes",]
+yes.train<-yes[1:(0.8*nrow(yes)),]
+#20% untuk test yang good#
+yes.test<-yes[-(1:(0.8*nrow(yes))),]
+
+# ambil 80% untuk train yang bad #
+no<-acak[acak$myopic=="No",]
+no.train<-no[1:(0.8*nrow(no)),]
+#20% untuk test yang bad#
+no.test<-no[-(1:(0.8*nrow(no))),]
+
+# data train #
+train<-as.data.frame(rbind(yes.train,no.train))
+# data test #
+test<-as.data.frame(rbind(yes.test,no.test))
+dim(train)
+dim(test)
+dim(data)
+names(data)
+
+############## TANPA DIKRETISASI ################
+model <-glm(class ~ spheq, data=train, family="binomial")
+summary(model)
+prediksi.prob <-predict(model, test, type="response")
+prediksi<-ifelse(prediksi.prob> 0.5, 1, 0)
+hist(prediksi)
+library(caret)
+confusionMatrix(prediksi,test$class)
+mean(test$class == prediksi)
+
+
+proporsi.kejadian
+prevalence.rate
+insidence.rate=mean(train$myopic=='Yes')
+insidence.rate
+
+#mengkategorikan prediksi peluang dg cut off=incidense rate
+kelas.prediksi=ifelse(prediksi.prob>insidence.rate,"Yes","No")
+table(test$myopic,kelas.prediksi)
+
+#Akurasi
+confusionMatrix(as.factor(kelas.prediksi),test$myopic,positive="Yes")
+################# WOE ###############
+## DISKRETISASI dgn 10 bin
+eqwid <-classIntervals(train$spheq, 10, style = 'equal')
+x.eqwid <-cut(train$spheq, breaks=eqwid$brks, include.lowest=TRUE)
+eqwid.test=classIntervals(test$spheq, 10, style = 'equal')
+x.eqwid.test=cut(test$spheq, breaks=eqwid.test$brks, include.lowest=TRUE)
+model.disk <-glm(myopic ~ x.eqwid,data=train,family="binomial")
+summary(model.disk)
+
+ins=mean(train$myopic=='Yes')
+prediksi.prob.disk <-predict(model.disk, newdata=x.eqwid.test, type="response")
+prediksi.disk <-ifelse(prediksi.prob.disk> ins, 'Yes', 'No')
+table(train$myopic, prediksi.disk)
+confusionMatrix(as.factor(prediksi.disk),test$myopic,positive = "Yes")
+mean(test$myopic == prediksi.disk)
+
+
+WOE=woe(train,"spheq",T,"class",C_Bin=11,Bad=0,Good=1)
+WOE
+plot(WOE$`BAD%`,WOE$WOE)## Plot WOE
+train2=train%>%
+  mutate(
+    bin=
+      case_when(
+        spheq>=-0.699 & spheq<0.13 ~ 211.3,
+        spheq>=0.138 & spheq<0.359 ~ 98.2,
+        spheq>=0.361 & spheq<0.522 ~ -10.6,
+        spheq>=0.525 & spheq<0.645 ~ --6.2,
+        spheq>=0.647 & spheq<0.722 ~ 41.6,
+        spheq>=0.728 & spheq<0.822 ~ -Inf,
+        spheq>=0.825 & spheq<0.944 ~ -194.6,
+        spheq>=0.945 & spheq<1.121 ~ -Inf,
+        spheq>=1.127 & spheq<1.427 ~ -Inf,
+        spheq>=1.435 & spheq<3.491 ~ -Inf,
+        spheq>=3.615 & spheq<=4.228 ~ -Inf
+      )
+  )
+modelwoe <- glm(myopic ~ bin,family = "binomial",data=train2)
+summary(modelwoe)
+
+WOE.test=woe(test,"spheq",T,"class",C_Bin=11,Bad=0,Good=1)
+WOE.test
+test2=test%>%
+  mutate(
+    bin=
+      case_when(
+        spheq>=-0.6 & spheq<0.165 ~ 184.1,
+        spheq>=0.183 & spheq<0.321 ~ 150.9,
+        spheq>=0.326 & spheq<0.46 ~ 23.8,
+        spheq>=0.483 & spheq<0.593 ~ -54.7,
+        spheq>=0.595 & spheq<0.696 ~ -54.7,
+        spheq>=0.702 & spheq<0.806 ~ -Inf,
+        spheq>=0.826 & spheq<0.976 ~ -54.7,
+        spheq>=0.983 & spheq<1.097 ~ -Inf,
+        spheq>=1.146 & spheq<1.358 ~ -54.7,
+        spheq>=1.395 & spheq<1.59 ~ -Inf,
+        spheq>=1.591 & spheq<=4.372 ~ -Inf
+      )
+  )
+
+
+
+prediksi.prob.disk1 <-predict(modelwoe, newdata=test2, type="response")
+prediksi.disk1 <-ifelse(prediksi.prob.disk1> 0.5, 'Yes', 'No')
+table(test2$myopic, prediksi.disk1)
+confusionMatrix(as.factor(prediksi.disk1),test2$myopic,positive = "Yes")
+mean(test2$myopic == prediksi.disk)
+#### ROC
+library(pROC)
+kurva.roc=roc(test$class,prediksi.prob)
+auc(kurva.roc)
+plot(kurva.roc,print.auc=TRUE)
+
+kurva.roc.disc=roc(test2$class,prediksi.prob.disk1)
+points(kurva.roc.disc$specificities,
+       kurva.roc.disc$sensitivities,
+       col='red',type = 'l')
+auc(kurva.roc.disc)
+
