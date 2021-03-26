@@ -1,0 +1,68 @@
+#-------------------------- SVM ----------------------------------#
+library(e1071)
+library(rpart)
+library(MASS)
+library(tidyverse)    # data manipulation and visualization
+library(kernlab)      # SVM methodology
+library(e1071)        # SVM methodology
+library(ISLR)         # contains example data set "Khan"
+library(RColorBrewer)
+
+dataku=read.delim("clipboard")
+nrow(dataku)
+sampelsize=round(0.8*nrow(dataku))
+View(sampelsize)
+set.seed(12345)
+
+indexx = sample( seq_len ( nrow ( dataku ) ), size = sampelsize )
+training = dataku[ indexx, ]
+View(training)
+B=nrow(training)
+B
+testing=dataku [-indexx,]
+
+
+hujan.svm <- svm(status ~., data = training,
+                  type="C-classification",
+                  kernel="radial",
+                 cost=1,Gamma=1) 
+
+hujan.svm 
+summary(hujan.svm)
+
+#---- manual akurasi
+x <- training
+pred2 <- predict(hujan.svm,x)
+pred2
+cm2 <- table(pred2,x$status)
+cm2
+accuracy2 <- (sum(cm2[1,1]+cm2[2,2]+cm2[3,3]))/sum(cm2)
+accuracy2
+list(Matrix_Uji=cm2,Akurasi=accuracy2,Total_data=sum(cm2))
+
+mean(hujan.svm$fitted!=training$status) 
+
+# ---- Tuning Parameter
+View(dataku)
+svm_tune=tune(svm,status ~., data = training,
+               type="C-classification",
+               kernel="polynomial",ranges = list(cost=c(1,5,10,50,100),d=c(1,2)))
+print(svm_tune)
+summary(svm_tune)
+svm_tune$best.model
+# ------------------ TESTING --------------- #
+
+xsvmtest <- testing
+predsvmtest <- predict(hujan.svm,xsvmtest)
+cmsvmtest <- table(predsvmtest,xsvmtest$status)
+accuracysvmtest <- sum(cmsvmtest[1,1]+cmsvmtest[2,2]+cmsvmtest[3,3])/sum(cmsvmtest)
+accuracysvmtest
+list(Matrix_Uji=cmsvmtest,Akurasi=accuracysvmtest,Total_data=sum(cmsvmtest))
+CC=nrow(testing)
+CC
+
+
+plot(hujan.svm, testing, Rata.rata.Suhu...C. ~ Rata.rata.Kelembaban....,
+      slice = list(Rata.rata.Penyinaran..jam. = 0, Rata.rata.Kecepatan.Angin..knot. = 1))
+
+plot(hujan.svm,testing)
